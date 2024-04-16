@@ -31,7 +31,8 @@ static size_t load_memory_from_file(char *filename, u8 *buffer)
 
 static void disassemble(size_t disasm_byte_count, u8 *buffer)
 {
-
+    // TODO: We need a way to parse and generate instructions one after the other, and to
+    // generate output from that. Maybe just an array of instructions.
 }
 
 int main(int arg_count, char **args)
