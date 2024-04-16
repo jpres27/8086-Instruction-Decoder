@@ -100,12 +100,6 @@ enum Reg
     DI
 };
 
-struct Memory
-{
-    u8 *memory_block;
-    u32 total_size;
-};
-
 struct Instruction
 {
     Opcode op;
