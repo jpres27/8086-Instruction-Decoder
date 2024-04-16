@@ -37,7 +37,16 @@ u8 ch_bp_bits = 0x14;
 u8 dh_si_bits = 0x18;
 u8 bh_di_bits = 0x1C;
 
-char *opening = "bits 16/n/n";
+u8 rm_al_ax_bits = al_ax_bits << 3;
+u8 rm_cl_cx_bits = cl_cx_bits << 3;
+u8 rm_dl_dx_bits = dl_dx_bits << 3;
+u8 rm_bl_bx_bits = bl_bx_bits << 3;
+u8 rm_ah_sp_bits = ah_sp_bits << 3;
+u8 rm_ch_bp_bits = ch_bp_bits << 3;
+u8 rm_dh_si_bits = dh_si_bits << 3;
+u8 rm_bh_di_bits = bh_di_bits << 3;
+
+char *opening = "bits 16\n\n";
 char *comma = ", ";
 char *mov = "mov ";
 char *al = "al";
@@ -56,6 +65,7 @@ char *dh = "dh";
 char *si = "si";
 char *bh = "bh";
 char *di = "di";
+char *end_of_inst = "\n";
 
 enum Opcode
 {

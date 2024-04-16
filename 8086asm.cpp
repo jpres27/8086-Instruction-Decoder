@@ -31,7 +31,7 @@ static size_t load_memory_from_file(char *filename, u8 *buffer)
 
 static void disassemble(size_t disasm_byte_count, u8 *buffer)
 {
-    
+
 }
 
 int main(int arg_count, char **args)
