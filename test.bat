@@ -1,3 +1,4 @@
 pushd ..\build
 8086asm listing_0037_single_register_mov
+8086asm listing_0038_many_register_mov
 popd
