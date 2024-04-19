@@ -92,6 +92,8 @@ static void disassemble(size_t byte_count, u8 *buffer)
         if(op ^ mov_ir_bits) 
         {
             fprintf(stdout, "ir\n");
+            fprintf(stdout, "i: %i\n", i);
+            fprintf(stdout, "op: %u\n", op);
             continue;
         }
 
