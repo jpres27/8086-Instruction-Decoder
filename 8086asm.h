@@ -14,14 +14,20 @@ typedef s32 b32;
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
-u8 opcode_mask = 0xfc;
+u8 first_four_mask = 0xf0;
+u8 first_six_mask = 0xfc;
+u8 first_seven_mask = 0xfe;
 u8 d_mask, d_bit = 0x2;
 u8 w_mask, w_bit = 0x1;
 u8 mod_mask = 0xc0;
 u8 reg_mask = 0x38;
 u8 rm_mask = 0x7;
 
-u8 mov_bits = 0x88;
+u8 mov_ir_bits = 0xb0;
+u8 mov_irm_bits = 0xc6;
+u8 mov_ma_bits = 0xa0;
+u8 mov_am_bits = 0xa2;
+u8 mov_rmr_bits = 0x88;
 
 u8 mem_no_disp_bits = 0x0;
 u8 mem_byte_disp_bits = 0x40;
