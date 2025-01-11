@@ -112,7 +112,14 @@ static void rm_disp(Instruction *inst, u8 *buffer, int i)
     if(inst->mod == MEM_BYTE_DISP)
     {
         u8 disp = buffer[i];
-        fprintf(stdout, " + %u]", disp);
+        if(disp != 0)
+        {
+            fprintf(stdout, " + %u]", disp);
+        }
+        else
+        {
+            fprintf(stdout, "]");
+        }
     }
     else if (inst->mod == MEM_WORD_DISP)
     {
