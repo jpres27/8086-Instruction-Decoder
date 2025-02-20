@@ -123,8 +123,10 @@ static void rm_disp(Instruction *inst, u8 *buffer, int i)
     }
     else if (inst->mod == MEM_WORD_DISP)
     {
+        // TODO: Debug the instruction printing out a weird 16 bit disp
+        // 
         u16 disp;
-        memcpy(&disp, buffer + i+1, sizeof(disp));
+        memcpy(&disp, buffer + i, sizeof(disp));
         fprintf(stdout, " + %u]", disp);
     }
 }
