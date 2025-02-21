@@ -111,10 +111,17 @@ static void rm_disp(Instruction *inst, u8 *buffer, int i)
 {
     if(inst->mod == MEM_BYTE_DISP)
     {
-        u8 disp = buffer[i];
+        s8 disp = (s8)buffer[i];
         if(disp != 0)
         {
-            fprintf(stdout, " + %u]", disp);
+            if(disp < 0)
+            {
+                fprintf(stdout, " - %d]", (disp*-1));
+            }
+            else
+            {
+                fprintf(stdout, " + %d]", disp);
+            }
         }
         else
         {
@@ -123,11 +130,16 @@ static void rm_disp(Instruction *inst, u8 *buffer, int i)
     }
     else if (inst->mod == MEM_WORD_DISP)
     {
-        // TODO: Debug the instruction printing out a weird 16 bit disp
-        // 
-        u16 disp;
+        s16 disp;
         memcpy(&disp, buffer + i, sizeof(disp));
-        fprintf(stdout, " + %u]", disp);
+        if(disp < 0)
+        {
+            fprintf(stdout, " - %d]", (disp*-1));
+        }
+        else
+        {
+            fprintf(stdout, " + %d]", disp);
+        }
     }
 }
 
