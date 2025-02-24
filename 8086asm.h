@@ -127,4 +127,5 @@ struct Instruction
     Mod mod;
     Reg reg;
     Reg rm;
+    b32 directaddress;
 };

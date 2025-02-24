@@ -103,8 +103,14 @@ static void rm_check(Instruction *inst, u8 *buffer, int i)
     if((rm ^ zoo) == 0) fprintf(stdout, "[bx + di"); 
     if((rm ^ ozz) == 0) fprintf(stdout, "[si"); 
     if((rm ^ ozo) == 0) fprintf(stdout, "[di");  
-    if(!(inst->mod == MEM_NO_DISP) && (rm ^ ooz) == 0) fprintf(stdout, "[bp");  // TODO: handle this special case
+    if((rm ^ ooz) == 0) fprintf(stdout, "[bp");
     if((rm ^ ooo) == 0) fprintf(stdout, "[bx"); 
+}
+
+static void direct_address_check(Instruction *inst, u8 *buffer, int i)
+{
+    u8 rm = buffer[i] & last_three_mask;
+    if((inst->mod == MEM_NO_DISP) && ((rm ^ ooz) == 0)) inst->directaddress = true;
 }
 
 static void rm_disp(Instruction *inst, u8 *buffer, int i)
@@ -185,6 +191,7 @@ static void disassemble(size_t byte_count, u8 *buffer)
             dest_check(&inst, buffer, i);
             wide_check(&inst, buffer, i, false);
             mod_check(&inst, buffer, i+1);
+            direct_address_check(&inst, buffer, i+1);
 
             if(inst.mod == REG_NO_DISP)
             {
@@ -202,9 +209,27 @@ static void disassemble(size_t byte_count, u8 *buffer)
                 }
             }
 
-            if(inst.mod == MEM_NO_DISP)
+            else if(inst.mod == MEM_NO_DISP)
             {
-                if(inst.d)
+                if(inst.directaddress)
+                {
+                    reg_check(&inst, 0, reg_mask, buffer, i+1); 
+                    fprintf(stdout, comma);
+                   
+                    if(!inst.w)
+                    {
+                        u8 data = buffer[i+2];
+                        fprintf(stdout, "[%u]", data);
+                    }
+                    else if (inst.w)
+                    {
+                        u16 data;
+                        memcpy(&data, buffer + (i+2), sizeof(data));
+                        fprintf(stdout, "[%u]", data);
+                        ++i; // three byte instruction since w=1
+                    }
+                }
+                else if(inst.d)
                 {
                     reg_check(&inst, 0, reg_mask, buffer, i+1);
                     fprintf(stdout, comma);
@@ -220,7 +245,7 @@ static void disassemble(size_t byte_count, u8 *buffer)
                 }
             }
 
-            if(inst.mod == MEM_BYTE_DISP || inst.mod == MEM_WORD_DISP)
+            else if(inst.mod == MEM_BYTE_DISP || inst.mod == MEM_WORD_DISP)
             {
                 if(inst.d)
                 {
@@ -250,7 +275,49 @@ static void disassemble(size_t byte_count, u8 *buffer)
         op = buffer[i] & first_seven_mask;
         if((op ^ mov_irm_bits) == 0)
         {
-            fprintf(stdout, "irm\n");
+            fprintf(stdout, mov);
+
+            wide_check(&inst, buffer, i, false);
+            mod_check(&inst, buffer, i+1);
+
+            if(inst.mod == REG_NO_DISP)
+            {
+
+            }
+
+            if(inst.mod == MEM_NO_DISP)
+            {
+                rm_check(&inst, buffer, i+1);
+                fprintf(stdout, "]");
+            }
+
+            if(inst.mod == MEM_BYTE_DISP || inst.mod == MEM_WORD_DISP)
+            {
+                rm_check(&inst, buffer, i+1);
+                rm_disp(&inst, buffer, i+2);
+                i++; // one byte disp plus at least one byte of disp
+                if(inst.mod == MEM_WORD_DISP) ++i; // two byte disp
+            }
+
+            fprintf(stdout, comma);
+
+            if(!inst.w)
+            {
+                fprintf(stdout, "byte ");
+                u8 data = buffer[i+2];
+                fprintf(stdout, "%u", data);
+            }
+            else if (inst.w)
+            {
+                fprintf(stdout, "word ");
+                u16 data;
+                memcpy(&data, buffer + (i+2), sizeof(data));
+                fprintf(stdout, "%u", data);
+                ++i; // three byte instruction since w=1
+            }
+
+            fprintf(stdout, end_of_inst);
+            i = i+2;
             continue;
         }
 
