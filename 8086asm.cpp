@@ -100,7 +100,7 @@ static void rm_check(Instruction *inst, u8 *buffer, int i)
     if((rm ^ zzz) == 0) fprintf(stdout, "[bx + si"); 
     if((rm ^ zzo) == 0) fprintf(stdout, "[bx + di"); 
     if((rm ^ zoz) == 0) fprintf(stdout, "[bp + si"); 
-    if((rm ^ zoo) == 0) fprintf(stdout, "[bx + di"); 
+    if((rm ^ zoo) == 0) fprintf(stdout, "[bp + di"); 
     if((rm ^ ozz) == 0) fprintf(stdout, "[si"); 
     if((rm ^ ozo) == 0) fprintf(stdout, "[di");  
     if((rm ^ ooz) == 0) fprintf(stdout, "[bp");
@@ -323,13 +323,48 @@ static void disassemble(size_t byte_count, u8 *buffer)
 
         if((op ^ mov_ma_bits) == 0)
         {
-            fprintf(stdout, "ma\n");
+            fprintf(stdout, mov);
+
+            wide_check(&inst, buffer, i, false);
+            fprintf(stdout, "ax, ");
+
+            if(!inst.w)
+            {
+                u8 data = buffer[i+1];
+                fprintf(stdout, "[%u]", data);
+            }
+            else if (inst.w)
+            {
+                u16 data;
+                memcpy(&data, buffer + (i+1), sizeof(data));
+                fprintf(stdout, "[%u]", data);
+                ++i; // three byte instruction since w=1
+            }
+            fprintf(stdout, end_of_inst);
+            ++i;
             continue;
         }
 
         if((op ^ mov_am_bits) == 0)
         {
-            fprintf(stdout, "am\n");
+            fprintf(stdout, mov);
+
+            wide_check(&inst, buffer, i, false);
+            if(!inst.w)
+            {
+                u8 data = buffer[i+1];
+                fprintf(stdout, "[%u]", data);
+            }
+            else if (inst.w)
+            {
+                u16 data;
+                memcpy(&data, buffer + (i+1), sizeof(data));
+                fprintf(stdout, "[%u]", data);
+                ++i; // three byte instruction since w=1
+            }
+            fprintf(stdout, ", ax");
+            fprintf(stdout, end_of_inst);
+            ++i;
             continue;
         }
     }

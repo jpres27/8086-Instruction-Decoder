@@ -126,6 +126,15 @@ struct Instruction
     b32 w;
     Mod mod;
     Reg reg;
+    // TODO: We aren't using rm or storing any state about it
+    // so we should update an rm enum or something with all possible
+    // states of rm that we can set in conjunction with mod checking
+    // or something just to store all relevant information, so that
+    // the contents of an instruction could be known from this struct
+    // alone, without reference to the assembly we print. It may simply be
+    // that we directly store the state of the rm bits and then whatever 
+    // needs to interpret it can do so in light of mod and we dont need 
+    // to worry about that here.
     Reg rm;
     b32 directaddress;
 };
