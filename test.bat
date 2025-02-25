@@ -1,4 +1,3 @@
 pushd ..\build
-8086asm listing_0039_more_movs
-8086asm listing_0040_challenge_movs
+8086asm listing_0041_add_sub_cmp_jnz
 popd

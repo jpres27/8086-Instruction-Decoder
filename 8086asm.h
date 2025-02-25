@@ -21,6 +21,8 @@ u8 fifth_bit_mask = 0x8;
 u8 last_three_mask = 0x7;
 u8 d_mask = 0x2; 
 u8 d_bit = 0x2;
+u8 s_mask = 0x2;
+u8 s_bit = 0x2;
 u8 w_mask = 0x1;
 u8 w_bit = 0x1;
 u8 mod_mask = 0xc0;
@@ -32,6 +34,10 @@ u8 mov_irm_bits = 0xc6;
 u8 mov_ma_bits = 0xa0;
 u8 mov_am_bits = 0xa2;
 u8 mov_rmr_bits = 0x88;
+
+u8 add_rmr_bits = 0x0;
+u8 add_irm_bits = 0x20;
+u8 add_ia_bits = 0x2;
 
 u8 mem_no_disp_bits = 0x0;
 u8 mem_byte_disp_bits = 0x40;
@@ -67,7 +73,13 @@ u8 ooo = 0x7;
 
 char *opening = "bits 16\n\n";
 char *comma = ", ";
+
 char *mov = "mov ";
+char *add = "add ";
+char *sub = "sub ";
+char *cmp = "cmp ";
+char *jnz = "jnz ";
+
 char *al = "al";
 char *ax = "ax";
 char *cl = "cl";
@@ -88,7 +100,11 @@ char *end_of_inst = "\n";
 
 enum Opcode
 {
-    MOV
+    MOV,
+    ADD,
+    SUB,
+    CMP,
+    JNZ
 };
 
 enum Mod
@@ -123,6 +139,7 @@ struct Instruction
 {
     Opcode op;
     b32 d;
+    b32 s;
     b32 w;
     Mod mod;
     Reg reg;
