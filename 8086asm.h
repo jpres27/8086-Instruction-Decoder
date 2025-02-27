@@ -36,8 +36,8 @@ u8 mov_am_bits = 0xa2;
 u8 mov_rmr_bits = 0x88;
 
 u8 add_rmr_bits = 0x0;
-u8 add_irm_bits = 0x20;
-u8 add_ia_bits = 0x2;
+u8 add_irm_bits = 0x80;
+u8 add_ia_bits = 0x4;
 
 u8 mem_no_disp_bits = 0x0;
 u8 mem_byte_disp_bits = 0x40;
