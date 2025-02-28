@@ -276,7 +276,7 @@ static int irm(Instruction *inst, u8 *buffer, int index)
 
     if (inst->mod == REG_NO_DISP)
     {
-        fprintf(stdout, " (add irm reg no disp not implemented)");
+        reg_check(inst, 3, rm_mask, buffer, i+1);
     }
 
     if (inst->mod == MEM_NO_DISP)
@@ -305,11 +305,20 @@ static int irm(Instruction *inst, u8 *buffer, int index)
     }
     else if (inst->w)
     {
-        fprintf(stdout, "word ");
-        u16 data;
-        memcpy(&data, buffer + (i + 2), sizeof(data));
-        fprintf(stdout, "%u", data);
-        i = i+2; // w is set so two byts of data
+        if(inst->s)
+        {
+            u8 data = buffer[i + 2];
+            fprintf(stdout, "%u", data);
+            ++i; // w is not set so one byte of data
+        }
+        else
+        {
+            fprintf(stdout, "word ");
+            u16 data;
+            memcpy(&data, buffer + (i + 2), sizeof(data));
+            fprintf(stdout, "%u", data);
+            i = i+2; // w is set so two byts of data
+        }
     }
 
     fprintf(stdout, end_of_inst);
