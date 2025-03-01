@@ -50,6 +50,8 @@ static void wide_check(Instruction *inst, u8 *buffer, int i, b32 ir)
     }
 }
 
+// d = 0, instruction source is in the REG field
+// d = 1, instruction destination is in the REG field
 static void dest_check(Instruction *inst, u8 *buffer, int i)
 {
     u8 dest = buffer[i] & d_mask;
@@ -73,6 +75,8 @@ static void mod_check(Instruction *inst, u8 *buffer, int i)
     if((mode ^ reg_no_disp_bits) == 0) inst->mod = REG_NO_DISP;
 }
 
+// Reg check is used to check r/m when mod is 11 REG NO DISP
+// To do so, supply a 3 as the shift arg and use the rm_mask as the mask arg
 static void reg_check(Instruction *inst, u8 shift, u8 mask, u8 *buffer, int i)
 {
     if(inst->w)
@@ -166,7 +170,6 @@ static void rm_disp(Instruction *inst, u8 *buffer, int i)
 static int rmr(Instruction *inst, u8 *buffer, int index)
 {
     int i = index;
-    // fprintf(stdout, "\nAt beginning of disassembly, i = %d\n", i);
     dest_check(inst, buffer, i);
     wide_check(inst, buffer, i, false);
     mod_check(inst, buffer, i+1);
@@ -174,8 +177,6 @@ static int rmr(Instruction *inst, u8 *buffer, int index)
 
     if (inst->mod == REG_NO_DISP)
     {
-        //fprintf(stdout, "Reg no disp\n");
-
         if (inst->d)
         {
             reg_check(inst, 0, reg_mask, buffer, i+1);
@@ -192,8 +193,6 @@ static int rmr(Instruction *inst, u8 *buffer, int index)
 
     else if (inst->mod == MEM_NO_DISP)
     {
-        //fprintf(stdout, "Mem no disp\n");
-
         if (inst->directaddress)
         {
             reg_check(inst, 0, reg_mask, buffer, i+1);
@@ -233,7 +232,6 @@ static int rmr(Instruction *inst, u8 *buffer, int index)
     {
         if (inst->d)
         {
-            //if(inst->mod == MEM_BYTE_DISP) fprintf(stdout, "\nd bit set, Mem byte disp\n");
             reg_check(inst, 0, reg_mask, buffer, i+1);
             fprintf(stdout, comma);
             rm_check(inst, buffer, i+1);
@@ -263,11 +261,11 @@ static int rmr(Instruction *inst, u8 *buffer, int index)
     return(i);
 }
 
-//TODO: Sign extension
+// TODO: Reducing branching is possible
 static int irm(Instruction *inst, u8 *buffer, int index)
 {
     int i = index;
-    if(inst->op == ADD)
+    if(inst->op == ADD || inst->op == SUB || inst->op == CMP)
     {
         sign_ext_check(inst, buffer, i);
     }
@@ -279,26 +277,28 @@ static int irm(Instruction *inst, u8 *buffer, int index)
         reg_check(inst, 3, rm_mask, buffer, i+1);
     }
 
-    if (inst->mod == MEM_NO_DISP)
+    else if (inst->mod == MEM_NO_DISP)
     {
+        if(!inst->w) fprintf(stdout, "byte ");
+        else if(inst->w) fprintf(stdout, "word ");
         rm_check(inst, buffer, i + 1);
         fprintf(stdout, "]");
     }
 
-    if (inst->mod == MEM_BYTE_DISP || inst->mod == MEM_WORD_DISP)
+    else if (inst->mod == MEM_BYTE_DISP || inst->mod == MEM_WORD_DISP)
     {
+        if(!inst->w) fprintf(stdout, "byte ");
+        else if(inst->w) fprintf(stdout, "word ");
         rm_check(inst, buffer, i + 1);
         rm_disp(inst, buffer, i + 2);
         i++; // one byte disp plus at least one byte of disp
-        if (inst->mod == MEM_WORD_DISP)
-            ++i; // two byte disp
+        if (inst->mod == MEM_WORD_DISP) ++i; // two byte disp
     }
 
     fprintf(stdout, comma);
 
     if (!inst->w)
     {
-        fprintf(stdout, "byte ");
         u8 data = buffer[i + 2];
         fprintf(stdout, "%u", data);
         ++i; // w is not set so one byte of data
@@ -307,18 +307,44 @@ static int irm(Instruction *inst, u8 *buffer, int index)
     {
         if(inst->s)
         {
-            u8 data = buffer[i + 2];
-            fprintf(stdout, "%u", data);
+            s8 data = buffer[i + 2];
+            s16 se_data = (s16)data;
+            fprintf(stdout, "%d", se_data);
             ++i; // w is not set so one byte of data
         }
         else
         {
-            fprintf(stdout, "word ");
             u16 data;
             memcpy(&data, buffer + (i + 2), sizeof(data));
             fprintf(stdout, "%u", data);
             i = i+2; // w is set so two byts of data
         }
+    }
+
+    fprintf(stdout, end_of_inst);
+    ++i;
+    return(i);
+}
+
+static int ia(Instruction *inst, u8 *buffer, int index)
+{
+    int i = index;
+
+    wide_check(inst, buffer, i, false);
+
+    if(!inst->w)
+    {
+        fprintf(stdout, "al, ");
+        u8 data = buffer[i+1];
+        fprintf(stdout, "[%u]", data);
+    }
+    else if (inst->w)
+    {
+        fprintf(stdout, "ax, ");
+        u16 data;
+        memcpy(&data, buffer + (i+1), sizeof(data));
+        fprintf(stdout, "[%u]", data);
+        ++i; // three byte instruction since w=1
     }
 
     fprintf(stdout, end_of_inst);
@@ -357,8 +383,132 @@ static void disassemble(size_t byte_count, u8 *buffer)
                 fprintf(stdout, "%u", data);
                 ++i; // three byte instruction since w=1
             }
-            ++i; // it was at least a two byte insturction
+            ++i; // it was at least a two byte instruction
             fprintf(stdout, end_of_inst);
+            continue;
+        }
+
+        if((op ^ conditional_jmp_bits) == 0)
+        {
+            u8 jmp_op = buffer[i] & last_four_mask;
+            
+            if((jmp_op ^ je_bits) == 0)
+            {
+                    fprintf(stdout, "je ");
+                    inst.op = JE;
+            }
+            if((jmp_op ^ jl_bits) == 0)
+            {
+                    fprintf(stdout, "jl ");
+                    inst.op = JL;
+            }
+            if((jmp_op ^ jle_bits) == 0)
+            {
+                    fprintf(stdout, "jle ");
+                    inst.op = JLE;
+            }
+            if((jmp_op ^ jb_bits) == 0)
+            {
+                    fprintf(stdout, "jb ");
+                    inst.op = JB;
+            }
+            if((jmp_op ^ jbe_bits) == 0)
+            {
+                    fprintf(stdout, "jbe ");
+                    inst.op = JBE;
+            }
+            if((jmp_op ^ jp_bits) == 0)
+            {
+                    fprintf(stdout, "jp ");
+                    inst.op = JP;
+            }
+            if((jmp_op ^ jo_bits) == 0)
+            {
+                    fprintf(stdout, "jo ");
+                    inst.op = JO;
+            }
+            if((jmp_op ^ js_bits) == 0)
+            {
+                    fprintf(stdout, "js ");
+                    inst.op = JS;
+            }
+            if((jmp_op ^ jne_bits) == 0)
+            {
+                    fprintf(stdout, "jne ");
+                    inst.op = JNE;
+            }
+            if((jmp_op ^ jnl_bits) == 0)
+            {
+                    fprintf(stdout, "jnl ");
+                    inst.op = JNL;
+            }
+            if((jmp_op ^ jnle_bits) == 0)
+            {
+                    fprintf(stdout, "jnle ");
+                    inst.op = JNLE;
+            }
+            if((jmp_op ^ jnb_bits) == 0)
+            {
+                    fprintf(stdout, "jnb ");
+                    inst.op = JNB;
+            }
+            if((jmp_op ^ jnbe_bits) == 0)
+            {
+                    fprintf(stdout, "jnbe ");
+                    inst.op = JNBE;
+            }
+            if((jmp_op ^ jnp_bits) == 0)
+            {
+                    fprintf(stdout, "jnp ");
+                    inst.op = JNP;
+            }
+            if((jmp_op ^ jno_bits) == 0)
+            {
+                    fprintf(stdout, "jno ");
+                    inst.op = JNO;
+            }
+            if((jmp_op ^ jns_bits) == 0)
+            {
+                    fprintf(stdout, "jns ");
+                    inst.op = JNS;
+            }
+
+            s8 data = buffer[i+1];
+            fprintf(stdout, "%d", data);
+            fprintf(stdout, end_of_inst);
+            ++i;
+            continue;
+        }
+
+        if((op ^ loop_category_bits) == 0)
+        {
+            u8 loop_op = buffer[i] & last_four_mask;
+            
+            if((loop_op ^ loop_bits) == 0)
+            {
+                    fprintf(stdout, "loop ");
+                    inst.op = LOOP;
+            }
+            if((loop_op ^ loopz_bits) == 0)
+            {
+                    fprintf(stdout, "loopz ");
+                    inst.op = LOOPZ;
+            }
+            if((loop_op ^ loopnz_bits) == 0)
+            {
+                    fprintf(stdout, "loopnz ");
+                    inst.op = LOOPNZ;
+            }
+            if((loop_op ^ jcxz_bits) == 0)
+            {
+                    fprintf(stdout, "jcxz ");
+                    inst.op = JCXZ;
+            }
+
+            s8 data = buffer[i+1];
+            fprintf(stdout, "%d", data);
+            fprintf(stdout, end_of_inst);
+            ++i;
             continue;
         }
 
@@ -366,18 +516,46 @@ static void disassemble(size_t byte_count, u8 *buffer)
 
         if((op ^ add_rmr_bits) == 0)
         {
-            //fprintf(stdout, "\n-- ADD RMR --\n");
             fprintf(stdout, add);
             inst.op = ADD;
             i = rmr(&inst, buffer, i);
-            //fprintf(stdout, "\nAfter disassembly i = %d\n", i);
             continue;
         }
 
-        if((op ^ add_irm_bits) == 0)
+        if((op ^ sub_rmr_bits) == 0)
         {
-            fprintf(stdout, add);
-            inst.op = ADD;
+            fprintf(stdout, sub);
+            inst.op = SUB;
+            i = rmr(&inst, buffer, i);
+            continue;
+        }
+
+        if((op ^ cmp_rmr_bits) == 0)
+        {
+            fprintf(stdout, cmp);
+            inst.op = CMP;
+            i = rmr(&inst, buffer, i);
+            continue;
+        }
+
+        if((op ^ irm_bits) == 0)
+        {
+            u8 secondbyteop = buffer[i+1] & reg_mask;
+            if((secondbyteop ^ add_irm_bits) == 0)
+            {
+                fprintf(stdout, add);
+                inst.op = ADD; 
+            }
+            else if((secondbyteop ^ sub_irm_bits) == 0)
+            {
+                fprintf(stdout, sub);
+                inst.op = SUB; 
+            }
+            else if((secondbyteop ^ cmp_irm_bits) == 0)
+            {
+                fprintf(stdout, cmp);
+                inst.op = CMP;
+            }
             i = irm(&inst, buffer, i);
             continue;
         }
@@ -396,25 +574,23 @@ static void disassemble(size_t byte_count, u8 *buffer)
         {
             fprintf(stdout, add);
             inst.op = ADD;
+            i = ia(&inst, buffer, i);
+            continue;
+        }
 
-            wide_check(&inst, buffer, i, false);
-            fprintf(stdout, "ax, ");
+        if((op ^ sub_ia_bits) == 0)
+        {
+            fprintf(stdout, sub);
+            inst.op = SUB;
+            i = ia(&inst, buffer, i);
+            continue;
+        }
 
-            if(!inst.w)
-            {
-                u8 data = buffer[i+1];
-                fprintf(stdout, "[%u]", data);
-            }
-            else if (inst.w)
-            {
-                u16 data;
-                memcpy(&data, buffer + (i+1), sizeof(data));
-                fprintf(stdout, "[%u]", data);
-                ++i; // three byte instruction since w=1
-            }
-            fprintf(stdout, end_of_inst);
-            ++i;
-
+        if((op ^ cmp_ia_bits) == 0)
+        {
+            fprintf(stdout, cmp);
+            inst.op = CMP;
+            i = ia(&inst, buffer, i);
             continue;
         }
 
@@ -486,7 +662,6 @@ int main(int arg_count, char **args)
     {
         char *filename = args[1];
         size_t bytes_read = load_memory_from_file(filename, buffer);
-        fprintf(stdout, "Bytes read: %zu\n", bytes_read);
         disassemble(bytes_read, buffer);
     }
 }

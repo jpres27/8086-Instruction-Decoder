@@ -19,6 +19,7 @@ u8 first_six_mask = 0xfc;
 u8 first_seven_mask = 0xfe;
 u8 fifth_bit_mask = 0x8;
 u8 last_three_mask = 0x7;
+u8 last_four_mask = 0xf;
 u8 d_mask = 0x2; 
 u8 d_bit = 0x2;
 u8 s_mask = 0x2;
@@ -35,9 +36,44 @@ u8 mov_ma_bits = 0xa0;
 u8 mov_am_bits = 0xa2;
 u8 mov_rmr_bits = 0x88;
 
+u8 irm_bits = 0x80;
+u8 add_irm_bits = 0x0;
+u8 sub_irm_bits = 0x28;
+u8 cmp_irm_bits = 0x38;
+
 u8 add_rmr_bits = 0x0;
-u8 add_irm_bits = 0x80;
 u8 add_ia_bits = 0x4;
+
+u8 sub_rmr_bits = 0x28;
+u8 sub_ia_bits = 0x2c;
+
+u8 cmp_rmr_bits = 0x38;
+u8 cmp_ia_bits = 0x3c;
+
+u8 conditional_jmp_bits = 0x70;
+u8 loop_category_bits = 0xe0;
+
+u8 je_bits = 0x4;
+u8 jl_bits = 0xc;
+u8 jle_bits = 0xe;
+u8 jb_bits = 0x2;
+u8 jbe_bits = 0x6;
+u8 jp_bits = 0xa;
+u8 jo_bits = 0x0;
+u8 js_bits = 0x8;
+u8 jne_bits = 0x5;
+u8 jnl_bits = 0xd;
+u8 jnle_bits = 0xf;
+u8 jnb_bits = 0x3;
+u8 jnbe_bits = 0x7;
+u8 jnp_bits = 0xb;
+u8 jno_bits = 0x1;
+u8 jns_bits = 0x9;
+
+u8 loop_bits = 0x2;
+u8 loopz_bits = 0x1;
+u8 loopnz_bits = 0x0;
+u8 jcxz_bits = 0x3;
 
 u8 mem_no_disp_bits = 0x0;
 u8 mem_byte_disp_bits = 0x40;
@@ -78,7 +114,6 @@ char *mov = "mov ";
 char *add = "add ";
 char *sub = "sub ";
 char *cmp = "cmp ";
-char *jnz = "jnz ";
 
 char *al = "al";
 char *ax = "ax";
@@ -104,7 +139,26 @@ enum Opcode
     ADD,
     SUB,
     CMP,
-    JNZ
+    JE,
+    JL,
+    JLE,
+    JB,
+    JBE,
+    JP,
+    JO,
+    JS,
+    JNE,
+    JNL,
+    JNLE,
+    JNB,
+    JNBE,
+    JNP,
+    JNO,
+    JNS,
+    LOOP,
+    LOOPZ,
+    LOOPNZ,
+    JCXZ
 };
 
 enum Mod
